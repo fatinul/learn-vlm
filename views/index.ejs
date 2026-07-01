@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Process Checklist</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Process Checklist</h1>
+    <div class="controls">
+      <span id="statusPill" class="pill">connecting...</span>
+      <button id="evalNowBtn" type="button">Evaluate now</button>
+      <button id="toggleBtn" type="button">Pause</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel video-panel">
+      <h2>Live Frame</h2>
+      <div class="frame-wrap">
+        <img id="frame" alt="Latest camera frame" />
+        <div id="frameOverlay" class="frame-overlay">Waiting for first frame...</div>
+      </div>
+      <p class="meta">
+        Source: <code><%= rtspUrl || 'not configured' %></code><br />
+        Camera: <span id="rtspStatus">-</span><br />
+        Last captured: <span id="frameTimestamp">-</span>
+        (<span id="frameAge">-</span>)
+      </p>
+      <p id="errorBanner" class="error-banner hidden"></p>
+    </section>
+
+    <section class="panel settings-panel">
+      <h2>Settings</h2>
+      <div class="settings-row">
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect"></select>
+      </div>
+      <div class="settings-row">
+        <label for="intervalInput">Eval interval (seconds)</label>
+        <input id="intervalInput" type="number" min="1" step="1" />
+      </div>
+      <button id="saveSettingsBtn" type="button">Save settings</button>
+      <p id="settingsStatus" class="hint"></p>
+    </section>
+
+    <section class="panel checklist-panel">
+      <h2>Checklist</h2>
+      <form id="addForm" class="add-form">
+        <input
+          id="promptInput"
+          type="text"
+          placeholder='e.g. "there should be 1 person wearing a black shirt"'
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Add condition</button>
+      </form>
+      <ul id="checklist" class="checklist"></ul>
+      <p class="hint">Tickboxes are set automatically by the AI model each cycle and cannot be edited manually. Use "Edit" to change a condition's wording.</p>
+    </section>
+
+    <section class="panel stats-panel">
+      <h2>System Statistics</h2>
+      <div id="stats" class="stats-grid"></div>
+      <p id="overloadWarning" class="warning hidden">
+        The system can't keep up: estimated processing time per cycle exceeds the evaluation
+        interval. Try fewer checklist items, a smaller/faster model, or a longer interval.
+      </p>
+
+      <h3 class="section-spacer">GPU</h3>
+      <div id="gpuStats" class="stats-grid"></div>
+    </section>
+
+    <section class="panel trends-panel">
+      <h2>Trends</h2>
+      <div class="charts-grid">
+        <div class="chart-box">
+          <h3>RAM usage (%)</h3>
+          <canvas id="ramChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>GPU usage (%)</h3>
+          <canvas id="gpuChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Cycle time (ms)</h3>
+          <canvas id="cycleChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Avg AI evaluation (ms)</h3>
+          <canvas id="evalChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel activity-panel">
+      <h2>Model Activity <span class="hint-inline">(exactly what is sent to / returned by Ollama)</span></h2>
+
+      <div id="currentActivity" class="current-activity hidden">
+        <span class="activity-live-badge">LIVE</span>
+        <span id="currentActivityCondition" class="activity-condition"></span>
+        <details class="activity-details">
+          <summary>Prompt sent to model</summary>
+          <pre id="currentActivityPrompt"></pre>
+        </details>
+      </div>
+
+      <ul id="activityLog" class="activity-log"></ul>
+      <p class="hint">Shows the last prompts sent to Ollama, the raw text each one returned, and the resulting true/false verdict.</p>
+    </section>
+  </main>
+
+  <script src="/vendor/chartjs/chart.umd.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

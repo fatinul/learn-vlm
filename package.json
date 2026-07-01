@@ -1,0 +1,16 @@
+{
+  "name": "process-checklist",
+  "version": "1.0.0",
+  "description": "Web app that verifies agentic process conditions against an RTSP camera feed using a local Ollama vision model.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2"
+  }
+}
