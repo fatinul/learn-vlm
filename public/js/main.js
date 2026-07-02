@@ -597,7 +597,7 @@ function updateCharts(points) {
   const labels = points.map((p) => new Date(p.t).toLocaleTimeString());
 
   setChartData(charts.ram, labels, points.map((p) => p.ramPct));
-  setChartData(charts.gpu, labels, points.map((p) => p.gpuPct));
+  setChartData(charts.gpu, labels, points.map((p) => p.gpuMemPct));
   setChartData(charts.cycle, labels, points.map((p) => p.cycleMs));
   setChartData(charts.evalTime, labels, points.map((p) => p.avgEvalMs));
 }

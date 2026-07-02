@@ -21,13 +21,14 @@ function sampleOnce() {
 
   const gpu = gpuStats.snapshot();
   const gpuPct = gpu.available && gpu.gpus[0] ? gpu.gpus[0].utilizationGpuPct : null;
+  const gpuMemPct = gpu.available && gpu.gpus[0] ? gpu.gpus[0].memoryUsedMB : null;
 
   const timings = systemStats.getPipelineTimings();
 
   points.push({
     t: Date.now(),
     ramPct,
-    gpuPct,
+    gpuMemPct,
     cycleMs: timings.lastCycleMs,
     avgEvalMs: timings.avgEvaluationMs,
   });
