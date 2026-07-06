@@ -38,6 +38,7 @@ const el = {
   activityLog: document.getElementById('activityLog'),
   modelSelect: document.getElementById('modelSelect'),
   intervalInput: document.getElementById('intervalInput'),
+  gpuSourceSelect: document.getElementById('gpuSourceSelect'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   settingsStatus: document.getElementById('settingsStatus'),
 };
@@ -275,6 +276,11 @@ function renderGpuStats(gpu) {
     return;
   }
 
+  if (gpu.source === 'tegrastats') {
+    renderTegrastats(gpu);
+    return;
+  }
+
   if (!gpu.gpus.length) {
     fillStatsGrid(el.gpuStats, [['Status', 'No GPU devices reported']]);
     return;
@@ -288,6 +294,47 @@ function renderGpuStats(gpu) {
     rows.push(['VRAM', `${fmtMB(g.memoryUsedMB)} / ${fmtMB(g.memoryTotalMB)}`]);
     rows.push(['Temp / Power', `${fmtC(g.temperatureC)}, ${fmtW(g.powerDrawW)}`]);
   });
+
+  fillStatsGrid(el.gpuStats, rows);
+}
+
+function renderTegrastats(gpu) {
+  const rows = [];
+
+  // Engine
+  const enginesOn = Object.entries(gpu.engines || {})
+    .filter(([, v]) => v !== false)
+    .map(([k]) => k)
+    .join(', ') || 'none';
+  rows.push(['GR3D_FREQ', `${gpu.gr3dFreq.pct != null ? fmtPct(gpu.gr3dFreq.pct) : '-'} (${gpu.gr3dFreq.freqMHz != null ? gpu.gr3dFreq.freqMHz + 'MHz' : '-'})`]);
+  rows.push(['EMC_FREQ', `${gpu.emcFreq.pct != null ? fmtPct(gpu.emcFreq.pct) : '-'} (${gpu.emcFreq.freqMHz != null ? gpu.emcFreq.freqMHz + 'MHz' : '-'})`]);
+  rows.push(['Active engines', enginesOn]);
+
+  // VRAM (RAM on Jetson is shared)
+  rows.push(['VRAM (RAM)', `${fmtMB(gpu.ram.usedMB)} / ${fmtMB(gpu.ram.totalMB)}`]);
+
+  // CPU cores
+  if (gpu.cpus && gpu.cpus.length) {
+    const coreSummary = gpu.cpus.map((c, i) => `C${i}:${c.pct != null ? c.pct + '%' : '-'}`).join(', ');
+    rows.push(['CPU cores', coreSummary]);
+    const avgFreq = gpu.cpus.reduce((s, c) => s + (c.freqMHz || 0), 0) / gpu.cpus.length;
+    rows.push(['CPU avg freq', `${Math.round(avgFreq)}MHz`]);
+  }
+
+  // Temperatures
+  if (gpu.temperatures) {
+    const tempParts = Object.entries(gpu.temperatures).map(([k, v]) => `${k}:${v.toFixed(1)}C`);
+    rows.push(['Temperatures', tempParts.join(', ')]);
+  }
+
+  // Power
+  if (gpu.power) {
+    for (const [key, val] of Object.entries(gpu.power)) {
+      const label = key.replace(/_/g, ' ');
+      const avgW = (val.averageMW / 1000).toFixed(2);
+      rows.push([label, `${fmtMW(val.currentMW)} / avg ${avgW}W`]);
+    }
+  }
 
   fillStatsGrid(el.gpuStats, rows);
 }
@@ -447,6 +494,10 @@ function fmtW(v) {
   return v == null ? '-' : `${v}W`;
 }
 
+function fmtMW(v) {
+  return v == null ? '-' : `${v}mW`;
+}
+
 async function removeItem(id) {
   await fetch(`/api/checklist/${id}`, { method: 'DELETE' });
   fetchState();
@@ -519,6 +570,9 @@ async function loadSettings() {
     if (data.evalIntervalMs) {
       el.intervalInput.value = Math.round(data.evalIntervalMs / 1000);
     }
+    if (data.gpuStatsSource) {
+      el.gpuSourceSelect.value = data.gpuStatsSource;
+    }
   } catch (err) {
     // ignore - fields just stay at their defaults
   }
@@ -527,6 +581,7 @@ async function loadSettings() {
 el.saveSettingsBtn.addEventListener('click', async () => {
   const model = el.modelSelect.value;
   const seconds = parseFloat(el.intervalInput.value);
+  const gpuStatsSource = el.gpuSourceSelect.value;
 
   if (!model || !seconds || seconds < 1) {
     el.settingsStatus.textContent = 'Pick a model and an interval of at least 1 second.';
@@ -538,7 +593,7 @@ el.saveSettingsBtn.addEventListener('click', async () => {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, evalIntervalMs: Math.round(seconds * 1000) }),
+      body: JSON.stringify({ model, evalIntervalMs: Math.round(seconds * 1000), gpuStatsSource }),
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));

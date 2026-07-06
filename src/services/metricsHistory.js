@@ -20,15 +20,24 @@ function sampleOnce() {
   const ramPct = round2(((totalMem - freeMem) / totalMem) * 100);
 
   const gpu = gpuStats.snapshot();
-  const gpuPct = gpu.available && gpu.gpus[0] ? gpu.gpus[0].utilizationGpuPct : null;
-  const gpuMemPct = gpu.available && gpu.gpus[0] ? gpu.gpus[0].memoryUsedMB : null;
+  let gpuPct = null;
+  let gpuMemMB = null;
+  if (gpu.available) {
+    if (gpu.source === 'tegrastats') {
+      gpuPct = gpu.gr3dFreq ? gpu.gr3dFreq.pct : null;
+      gpuMemMB = gpu.ram ? gpu.ram.usedMB : null;
+    } else if (gpu.gpus && gpu.gpus[0]) {
+      gpuPct = gpu.gpus[0].utilizationGpuPct;
+      gpuMemMB = gpu.gpus[0].memoryUsedMB;
+    }
+  }
 
   const timings = systemStats.getPipelineTimings();
 
   points.push({
     t: Date.now(),
     ramPct,
-    gpuMemPct,
+    gpuMemPct: gpuMemMB,
     cycleMs: timings.lastCycleMs,
     avgEvalMs: timings.avgEvaluationMs,
   });

@@ -42,6 +42,13 @@
         <label for="intervalInput">Eval interval (seconds)</label>
         <input id="intervalInput" type="number" min="1" step="1" />
       </div>
+      <div class="settings-row">
+        <label for="gpuSourceSelect">GPU stats source</label>
+        <select id="gpuSourceSelect">
+          <option value="nvidia-smi">nvidia-smi</option>
+          <option value="tegrastats">tegrastats (Jetson)</option>
+        </select>
+      </div>
       <button id="saveSettingsBtn" type="button">Save settings</button>
       <p id="settingsStatus" class="hint"></p>
     </section>
