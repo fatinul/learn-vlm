@@ -1,13 +1,10 @@
 const config = require('../config');
+const gpuStats = require('./gpuStats');
 
-/**
- * Settings that can be changed from the UI at runtime, without restarting
- * the server. Everything else in config.js (ports, RTSP URL, etc.) still
- * requires a restart since changing them mid-flight is far riskier.
- */
 const state = {
   ollamaModel: config.ollamaModel,
   evalIntervalMs: config.evalIntervalMs,
+  gpuStatsSource: config.gpuStatsSource,
 };
 
 function get() {
@@ -31,4 +28,13 @@ function setEvalIntervalMs(ms) {
   return state.evalIntervalMs;
 }
 
-module.exports = { get, setOllamaModel, setEvalIntervalMs };
+function setGpuStatsSource(src) {
+  if (src !== 'nvidia-smi' && src !== 'tegrastats') {
+    throw new Error('gpuStatsSource must be "nvidia-smi" or "tegrastats"');
+  }
+  state.gpuStatsSource = src;
+  gpuStats.setSource(src);
+  return state.gpuStatsSource;
+}
+
+module.exports = { get, setOllamaModel, setEvalIntervalMs, setGpuStatsSource };

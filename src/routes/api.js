@@ -126,6 +126,9 @@ router.post('/settings', (req, res) => {
     if (req.body.evalIntervalMs !== undefined) {
       runtimeConfig.setEvalIntervalMs(req.body.evalIntervalMs);
     }
+    if (req.body.gpuStatsSource !== undefined) {
+      runtimeConfig.setGpuStatsSource(req.body.gpuStatsSource);
+    }
     res.json({ ...runtimeConfig.get() });
   } catch (err) {
     res.status(400).json({ error: err.message });

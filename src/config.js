@@ -21,4 +21,6 @@ module.exports = {
   evalIntervalMs: parseInt(process.env.EVAL_INTERVAL_MS || '8000', 10),
 
   ffmpegPath: process.env.FFMPEG_PATH || 'ffmpeg',
+
+  gpuStatsSource: process.env.GPU_STATS_SOURCE || 'nvidia-smi',
 };

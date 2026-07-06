@@ -9,8 +9,10 @@ app.listen(config.port, async () => {
   console.log(`Process Checklist running at http://localhost:${config.port}`);
   console.log(`RTSP source: ${config.rtspUrl || '(not configured)'}`);
   console.log(`Ollama model: ${config.ollamaModel} @ ${config.ollamaHost}`);
+  console.log(`GPU stats source: ${config.gpuStatsSource}`);
 
   rtspCapture.start();
+  gpuStats.setSource(config.gpuStatsSource);
   gpuStats.start();
   metricsHistory.start();
 
@@ -26,6 +28,7 @@ app.listen(config.port, async () => {
 
 process.on('SIGINT', () => {
   evaluator.stop();
+  gpuStats.stop();
   rtspCapture.stop();
   metricsHistory.stop();
   process.exit(0);
