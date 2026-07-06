@@ -552,6 +552,10 @@ button:hover {
   letter-spacing: 0.05em;
 }
 
+.chart-box-wide {
+  grid-column: 1 / -1;
+}
+
 .chart-box canvas {
   width: 100% !important;
   height: 160px !important;

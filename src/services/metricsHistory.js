@@ -40,6 +40,7 @@ function sampleOnce() {
     gpuMemPct: gpuMemMB,
     cycleMs: timings.lastCycleMs,
     avgEvalMs: timings.avgEvaluationMs,
+    tokensByModel: systemStats.getTokensByModel(),
   });
 
   if (points.length > MAX_POINTS) {

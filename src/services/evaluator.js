@@ -77,7 +77,7 @@ async function runCycle() {
           totalTokens: outcome.totalTokens,
         });
         systemStats.recordEvaluation(outcome.latencyMs, true);
-        systemStats.recordTokens(outcome.promptTokens, outcome.completionTokens);
+        systemStats.recordTokens(outcome.promptTokens, outcome.completionTokens, settings.model);
         inferenceLog.add({
           conditionId: item.id,
           condition: item.prompt,

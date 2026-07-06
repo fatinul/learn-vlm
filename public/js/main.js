@@ -708,7 +708,18 @@ el.saveSettingsBtn.addEventListener('click', async () => {
   }
 });
 
-// --- Trend charts (RAM / GPU / cycle time / avg AI evaluation) ---
+// --- Trend charts (RAM / GPU / cycle time / avg AI evaluation / token usage) ---
+
+const MODEL_CHART_COLORS = [
+  ['#a78bfa', 'rgba(167, 139, 250, 0.15)'],
+  ['#5b9dff', 'rgba(91, 157, 255, 0.15)'],
+  ['#3ecf8e', 'rgba(62, 207, 142, 0.15)'],
+  ['#f0a93e', 'rgba(240, 169, 62, 0.15)'],
+  ['#ef5a5a', 'rgba(239, 90, 90, 0.15)'],
+  ['#ec4899', 'rgba(236, 72, 153, 0.15)'],
+  ['#22d3ee', 'rgba(34, 211, 238, 0.15)'],
+  ['#facc15', 'rgba(250, 204, 21, 0.15)'],
+];
 
 function initCharts() {
   if (typeof Chart === 'undefined') return;
@@ -747,6 +758,21 @@ function initCharts() {
     gpu: makeChart('gpuChart', 'GPU %', '#3ecf8e', 'rgba(62, 207, 142, 0.15)'),
     cycle: makeChart('cycleChart', 'Cycle ms', '#f0a93e', 'rgba(240, 169, 62, 0.15)'),
     evalTime: makeChart('evalChart', 'Avg eval ms', '#ef5a5a', 'rgba(239, 90, 90, 0.15)'),
+    tokens: new Chart(document.getElementById('tokenChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [] },
+      options: {
+        ...commonOptions,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { color: '#9aa1ac', font: { size: 10 }, boxWidth: 12 },
+          },
+          tooltip: { enabled: true },
+        },
+      },
+    }),
   };
 }
 
@@ -758,6 +784,30 @@ function updateCharts(points) {
   setChartData(charts.gpu, labels, points.map((p) => p.gpuMemPct));
   setChartData(charts.cycle, labels, points.map((p) => p.cycleMs));
   setChartData(charts.evalTime, labels, points.map((p) => p.avgEvalMs));
+  updateTokenChart(points, labels);
+}
+
+function updateTokenChart(points, labels) {
+  const modelSet = new Set();
+  for (const p of points) {
+    if (p.tokensByModel) {
+      Object.keys(p.tokensByModel).forEach((m) => modelSet.add(m));
+    }
+  }
+  const models = [...modelSet].sort();
+
+  charts.tokens.data.labels = labels;
+  charts.tokens.data.datasets = models.map((model, i) => {
+    const [color, bg] = MODEL_CHART_COLORS[i % MODEL_CHART_COLORS.length];
+    return {
+      label: model,
+      data: points.map((p) => p.tokensByModel?.[model] ?? 0),
+      borderColor: color,
+      backgroundColor: bg,
+      fill: false,
+    };
+  });
+  charts.tokens.update('none');
 }
 
 function setChartData(chart, labels, data) {

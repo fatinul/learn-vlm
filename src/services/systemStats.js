@@ -16,6 +16,7 @@ const metrics = {
   totalPromptTokens: 0,
   totalCompletionTokens: 0,
   totalTokens: 0,
+  tokensByModel: {},
   cycles: 0,
   totalCycleMs: 0,
   lastCycleMs: null,
@@ -40,11 +41,20 @@ function recordEvaluation(durationMs, ok) {
   else metrics.evaluationsFailed += 1;
 }
 
-function recordTokens(promptTokens, completionTokens) {
+function recordTokens(promptTokens, completionTokens, model) {
   if (promptTokens != null) metrics.totalPromptTokens += promptTokens;
   if (completionTokens != null) metrics.totalCompletionTokens += completionTokens;
   const total = (promptTokens ?? 0) + (completionTokens ?? 0);
-  if (total) metrics.totalTokens += total;
+  if (total) {
+    metrics.totalTokens += total;
+    if (model) {
+      metrics.tokensByModel[model] = (metrics.tokensByModel[model] || 0) + total;
+    }
+  }
+}
+
+function getTokensByModel() {
+  return { ...metrics.tokensByModel };
 }
 
 function recordCycle(durationMs) {
@@ -147,6 +157,7 @@ module.exports = {
   recordFrameError,
   recordEvaluation,
   recordTokens,
+  getTokensByModel,
   recordCycle,
   getPipelineTimings,
   snapshot,
