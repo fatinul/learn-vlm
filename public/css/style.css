@@ -499,6 +499,33 @@ button:hover {
   border-color: var(--accent);
 }
 
+.provider-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.provider-btn {
+  flex: 1;
+  background: #10131a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.provider-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.provider-btn.active {
+  background: rgba(62, 140, 255, 0.15);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .trends-panel {
   grid-column: 1 / -1;
 }

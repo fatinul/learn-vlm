@@ -37,6 +37,8 @@ const el = {
   currentActivityPrompt: document.getElementById('currentActivityPrompt'),
   activityLog: document.getElementById('activityLog'),
   modelSelect: document.getElementById('modelSelect'),
+  providerGroqBtn: document.getElementById('providerGroqBtn'),
+  providerOllamaBtn: document.getElementById('providerOllamaBtn'),
   intervalInput: document.getElementById('intervalInput'),
   gpuSourceSelect: document.getElementById('gpuSourceSelect'),
   rtspUrlInput: document.getElementById('rtspUrlInput'),
@@ -254,6 +256,7 @@ function renderStats(stats) {
     ['CPU', `${system.cpuCores} cores, load ${system.loadAvg1m.toFixed(2)}`],
     ['Memory', `${system.usedMemGB}GB / ${system.totalMemGB}GB (${system.memUsagePct}%)`],
     ['Node process', `${proc.rssMB}MB RSS`],
+    ['Provider', pipeline.provider === 'ollama' ? 'Ollama (local)' : 'Groq (cloud)'],
     ['Model', pipeline.model],
     ['Checklist items', String(pipeline.checklistCount)],
     ['Eval interval', `${pipeline.evalIntervalMs}ms`],
@@ -542,12 +545,30 @@ el.evalNowBtn.addEventListener('click', async () => {
   fetchState();
 });
 
-// --- Settings: model + interval, editable from the UI without a restart ---
+// --- Settings: provider, model + interval ---
 
-async function loadModels() {
+let activeProvider = 'groq';
+
+function providerLabel(provider) {
+  return provider === 'ollama' ? 'Ollama (local)' : 'Groq (cloud)';
+}
+
+function updateProviderButtons(provider) {
+  activeProvider = provider;
+  el.providerGroqBtn.classList.toggle('active', provider === 'groq');
+  el.providerOllamaBtn.classList.toggle('active', provider === 'ollama');
+  const hint = document.getElementById('activityProviderHint');
+  if (hint) {
+    hint.textContent = `(exactly what is sent to / returned by ${providerLabel(provider)})`;
+  }
+}
+
+async function loadModels(provider = activeProvider) {
   try {
-    const res = await fetch('/api/models');
+    const res = await fetch(`/api/models?provider=${encodeURIComponent(provider)}`);
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
     el.modelSelect.innerHTML = '';
     for (const m of data.models || []) {
       const opt = document.createElement('option');
@@ -557,21 +578,65 @@ async function loadModels() {
     }
     if (!data.models || !data.models.length) {
       const opt = document.createElement('option');
-      opt.textContent = 'No models found on Groq';
+      opt.textContent = provider === 'ollama'
+        ? 'No models found on Ollama'
+        : 'No models found on Groq';
       el.modelSelect.appendChild(opt);
     }
   } catch (err) {
     el.modelSelect.innerHTML = '';
     const opt = document.createElement('option');
-    opt.textContent = 'Could not load models from Groq';
+    opt.textContent = provider === 'ollama'
+      ? `Could not load models from Ollama`
+      : `Could not load models from Groq`;
     el.modelSelect.appendChild(opt);
   }
 }
+
+async function switchProvider(provider) {
+  if (provider === activeProvider) return;
+
+  el.settingsStatus.textContent = 'Switching provider...';
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || `HTTP ${res.status}`);
+    }
+    const saved = await res.json();
+    updateProviderButtons(saved.provider);
+    await loadModels(saved.provider);
+    if (saved.model) {
+      const hasOption = Array.from(el.modelSelect.options).some((o) => o.value === saved.model);
+      if (!hasOption) {
+        const opt = document.createElement('option');
+        opt.value = saved.model;
+        opt.textContent = saved.model;
+        el.modelSelect.prepend(opt);
+      }
+      el.modelSelect.value = saved.model;
+    }
+    el.settingsStatus.textContent = `Using ${providerLabel(saved.provider)}.`;
+  } catch (err) {
+    el.settingsStatus.textContent = `Error: ${err.message}`;
+  }
+}
+
+el.providerGroqBtn.addEventListener('click', () => switchProvider('groq'));
+el.providerOllamaBtn.addEventListener('click', () => switchProvider('ollama'));
 
 async function loadSettings() {
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
+    if (data.provider) {
+      updateProviderButtons(data.provider);
+      await loadModels(data.provider);
+    }
     if (data.model) {
       const hasOption = Array.from(el.modelSelect.options).some((o) => o.value === data.model);
       if (!hasOption) {
@@ -610,7 +675,12 @@ el.saveSettingsBtn.addEventListener('click', async () => {
 
   el.settingsStatus.textContent = 'Saving...';
   try {
-    const body = { model, evalIntervalMs: Math.round(seconds * 1000), gpuStatsSource };
+    const body = {
+      provider: activeProvider,
+      model,
+      evalIntervalMs: Math.round(seconds * 1000),
+      gpuStatsSource,
+    };
     if (rtspUrl) body.rtspUrl = rtspUrl;
     const res = await fetch('/api/settings', {
       method: 'POST',
@@ -690,7 +760,7 @@ function setChartData(chart, labels, data) {
 }
 
 initCharts();
-loadModels().then(loadSettings);
+loadSettings();
 
 fetchState();
 fetchLogs();

@@ -20,6 +20,7 @@ router.get('/state', (req, res) => {
   const stats = systemStats.snapshot({
     checklistCount: checklist.length,
     evalIntervalMs: settings.evalIntervalMs,
+    provider: settings.provider,
     model: settings.model,
     running: evalState.running,
     gpu: gpuStats.snapshot(),
@@ -96,8 +97,30 @@ const GROQ_VISION_MODELS = new Set([
   'meta-llama/llama-4-scout-17b-16e-instruct',
 ]);
 
-// Lists models available on Groq, so the UI can offer a dropdown.
+// Lists models for the active or requested provider.
 router.get('/models', async (req, res) => {
+  const provider = req.query.provider || runtimeConfig.get().provider;
+
+  if (provider === 'ollama') {
+    try {
+      const response = await fetch(`${config.ollamaHost}/api/tags`);
+      if (!response.ok) {
+        throw new Error(`Ollama responded with ${response.status}`);
+      }
+      const data = await response.json();
+      const models = (data.models || []).map((m) => ({
+        name: m.name,
+        vision: Array.isArray(m.capabilities) && m.capabilities.includes('vision'),
+        capabilities: m.capabilities || [],
+        parameterSize: m.details ? m.details.parameter_size : null,
+      }));
+      models.sort((a, b) => Number(b.vision) - Number(a.vision) || a.name.localeCompare(b.name));
+      return res.json({ provider, models });
+    } catch (err) {
+      return res.status(502).json({ error: `Could not reach Ollama at ${config.ollamaHost}: ${err.message}` });
+    }
+  }
+
   if (!config.groqApiKey) {
     return res.status(502).json({ error: 'GROQ_API_KEY is not configured' });
   }
@@ -116,18 +139,25 @@ router.get('/models', async (req, res) => {
       parameterSize: null,
     }));
     models.sort((a, b) => Number(b.vision) - Number(a.vision) || a.name.localeCompare(b.name));
-    res.json({ models });
+    res.json({ provider: 'groq', models });
   } catch (err) {
     res.status(502).json({ error: `Could not reach Groq API: ${err.message}` });
   }
 });
 
 router.get('/settings', (req, res) => {
-  res.json({ ...runtimeConfig.get(), groqConfigured: Boolean(config.groqApiKey) });
+  res.json({
+    ...runtimeConfig.get(),
+    groqConfigured: Boolean(config.groqApiKey),
+    ollamaHost: config.ollamaHost,
+  });
 });
 
 router.post('/settings', (req, res) => {
   try {
+    if (req.body.provider !== undefined) {
+      runtimeConfig.setProvider(req.body.provider);
+    }
     if (req.body.model !== undefined) {
       runtimeConfig.setModel(req.body.model);
     }

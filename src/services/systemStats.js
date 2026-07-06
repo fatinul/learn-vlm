@@ -63,7 +63,7 @@ function getPipelineTimings() {
   };
 }
 
-function snapshot({ checklistCount, evalIntervalMs, model, running, gpu, rtsp } = {}) {
+function snapshot({ checklistCount, evalIntervalMs, provider, model, running, gpu, rtsp } = {}) {
   const avgFrameAgeMs = metrics.framesUsed ? metrics.totalFrameAgeMs / metrics.framesUsed : null;
   const totalEvaluations = metrics.evaluationsOk + metrics.evaluationsFailed;
   const avgEvaluationMs = totalEvaluations ? metrics.totalEvaluationMs / totalEvaluations : null;
@@ -109,6 +109,7 @@ function snapshot({ checklistCount, evalIntervalMs, model, running, gpu, rtsp } 
     },
     pipeline: {
       running: !!running,
+      provider,
       model,
       evalIntervalMs,
       checklistCount: checklistCount || 0,
