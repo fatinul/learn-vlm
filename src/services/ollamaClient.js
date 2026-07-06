@@ -48,11 +48,31 @@ async function askYesNo({ imageBase64, condition }) {
     const data = await res.json();
     const parsed = parseModelResponse(data.response);
 
+    // Extract token counts — try OpenAI-compatible usage object first, then
+    // Ollama-native top-level fields, then estimate from text length as last
+    // resort (local Ollama / some OSS backends don't report usage at all).
+    const usage = data.usage || {};
+    let promptTokens = usage.prompt_tokens ?? data.prompt_eval_count ?? null;
+    let completionTokens = usage.completion_tokens ?? data.eval_count ?? null;
+    let totalTokens = usage.total_tokens ?? null;
+
+    if (promptTokens == null || completionTokens == null || totalTokens == null) {
+      const textPromptTokens = Math.max(1, Math.round(prompt.length / 4));
+      const imageTokens = Math.max(20, Math.round(imageBase64.length / 18000));
+      const responseTokens = Math.max(1, Math.round(data.response.length / 4));
+      promptTokens ??= textPromptTokens + imageTokens;
+      completionTokens ??= responseTokens;
+      totalTokens ??= promptTokens + completionTokens;
+    }
+
     return {
       ...parsed,
       latencyMs: Date.now() - start,
       prompt,
       rawResponse: data.response,
+      promptTokens,
+      completionTokens,
+      totalTokens,
     };
   } catch (err) {
     const wrapped = err.name === 'AbortError'

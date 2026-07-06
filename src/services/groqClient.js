@@ -61,10 +61,22 @@ async function askYesNo({ imageBase64, mimeType = 'image/jpeg', condition }) {
     const rawResponse = data.choices?.[0]?.message?.content || '';
     const parsed = parseModelResponse(rawResponse);
 
+    // Extract token counts — try OpenAI-compatible usage object first, then
+    // Ollama-native top-level fields, then estimate from text length as last
+    // resort (local Ollama / some OSS backends don't report usage at all).
     const usage = data.usage || {};
-    const promptTokens = usage.prompt_tokens ?? null;
-    const completionTokens = usage.completion_tokens ?? null;
-    const totalTokens = usage.total_tokens ?? null;
+    let promptTokens = usage.prompt_tokens ?? data.prompt_eval_count ?? null;
+    let completionTokens = usage.completion_tokens ?? data.eval_count ?? null;
+    let totalTokens = usage.total_tokens ?? null;
+
+    if (promptTokens == null || completionTokens == null || totalTokens == null) {
+      const textPromptTokens = Math.max(1, Math.round(prompt.length / 4));
+      const imageTokens = Math.max(20, Math.round(imageBase64.length / 18000));
+      const responseTokens = Math.max(1, Math.round(rawResponse.length / 4));
+      promptTokens ??= textPromptTokens + imageTokens;
+      completionTokens ??= responseTokens;
+      totalTokens ??= promptTokens + completionTokens;
+    }
 
     return {
       ...parsed,

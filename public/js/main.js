@@ -243,8 +243,16 @@ function describeStatus(item) {
   }
 
   if (item.lastCheckedAt) parts.push(`checked ${new Date(item.lastCheckedAt).toLocaleTimeString()}`);
-  if (item.lastLatencyMs != null) parts.push(`${item.lastLatencyMs}ms`);
-  if (item.totalTokens != null) parts.push(`${item.totalTokens} tokens`);
+  if (item.lastLatencyMs != null) {
+    let latencyPart = `${item.lastLatencyMs}ms`;
+    if (item.totalTokens != null) {
+      latencyPart += ` (${item.totalTokens} tokens)`;
+    }
+    parts.push(latencyPart);
+  } else if (item.totalTokens != null) {
+    parts.push(`${item.totalTokens} tokens`);
+  }
+
   return parts.join(' - ');
 }
 
@@ -262,13 +270,12 @@ function renderStats(stats) {
     ['Eval interval', `${pipeline.evalIntervalMs}ms`],
     ['Avg frame freshness', fmtMs(pipeline.avgFrameAgeMs)],
     ['Last frame freshness', fmtMs(pipeline.lastFrameAgeMs)],
-    ['Avg AI evaluation', fmtMs(pipeline.avgEvaluationMs)],
+    ['Avg AI evaluation', `${fmtMs(pipeline.avgEvaluationMs)}${pipeline.avgTokensPerEval != null ? ` (${fmtTokens(pipeline.avgTokensPerEval)} tokens)` : ''}`],
     ['Last cycle time', fmtMs(pipeline.lastCycleMs)],
     ['Estimated cycle time', fmtMs(pipeline.estimatedCycleMs)],
     ['Frames used', String(pipeline.framesUsed)],
     ['Frame errors', String(pipeline.frameErrors)],
     ['Failed evaluations', String(pipeline.evaluationsFailed)],
-    ['Avg tokens per eval', fmtTokens(pipeline.avgTokensPerEval)],
     ['Total tokens', fmtTokens(pipeline.totalTokens)],
     ['Total prompt tokens', fmtTokens(pipeline.totalPromptTokens)],
     ['Total completion tokens', fmtTokens(pipeline.totalCompletionTokens)],
@@ -447,7 +454,7 @@ function renderActivityLog(logs) {
 
     const metaEl = document.createElement('span');
     metaEl.className = 'activity-summary-meta';
-    const tokenPart = entry.totalTokens != null ? ` ${entry.totalTokens} tokens` : '';
+    const tokenPart = entry.totalTokens != null ? ` (${entry.totalTokens} tokens)` : '';
     metaEl.textContent = `${entry.latencyMs != null ? entry.latencyMs + 'ms' : ''}${tokenPart} - ${new Date(entry.timestamp).toLocaleTimeString()}`;
 
     summary.appendChild(conditionEl);
