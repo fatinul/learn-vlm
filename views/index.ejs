@@ -24,7 +24,7 @@
         <div id="frameOverlay" class="frame-overlay">Waiting for first frame...</div>
       </div>
       <p class="meta">
-        Source: <code><%= rtspUrl || 'not configured' %></code><br />
+        Source: <code id="sourceUrlDisplay"><%= rtspUrl || 'not configured' %></code><br />
         Camera: <span id="rtspStatus">-</span><br />
         Last captured: <span id="frameTimestamp">-</span>
         (<span id="frameAge">-</span>)
@@ -48,6 +48,10 @@
           <option value="nvidia-smi">nvidia-smi</option>
           <option value="tegrastats">tegrastats (Jetson)</option>
         </select>
+      </div>
+      <div class="settings-row">
+        <label for="rtspUrlInput">Camera source URL</label>
+        <input id="rtspUrlInput" type="text" placeholder="rtsp://..." />
       </div>
       <button id="saveSettingsBtn" type="button">Save settings</button>
       <p id="settingsStatus" class="hint"></p>

@@ -39,6 +39,8 @@ const el = {
   modelSelect: document.getElementById('modelSelect'),
   intervalInput: document.getElementById('intervalInput'),
   gpuSourceSelect: document.getElementById('gpuSourceSelect'),
+  rtspUrlInput: document.getElementById('rtspUrlInput'),
+  sourceUrlDisplay: document.getElementById('sourceUrlDisplay'),
   saveSettingsBtn: document.getElementById('saveSettingsBtn'),
   settingsStatus: document.getElementById('settingsStatus'),
 };
@@ -355,6 +357,9 @@ function fillStatsGrid(container, rows) {
 
 function renderRtspStatus(rtsp) {
   if (!rtsp || !el.rtspStatus) return;
+  if (rtsp.sourceUrl && el.sourceUrlDisplay) {
+    el.sourceUrlDisplay.textContent = rtsp.sourceUrl;
+  }
   if (!rtsp.connected) {
     el.rtspStatus.textContent = `disconnected${rtsp.lastError ? ' - ' + rtsp.lastError : ''} (restarts: ${rtsp.restartCount})`;
     return;
@@ -573,6 +578,10 @@ async function loadSettings() {
     if (data.gpuStatsSource) {
       el.gpuSourceSelect.value = data.gpuStatsSource;
     }
+    if (data.rtspUrl) {
+      el.rtspUrlInput.value = data.rtspUrl;
+      if (el.sourceUrlDisplay) el.sourceUrlDisplay.textContent = data.rtspUrl;
+    }
   } catch (err) {
     // ignore - fields just stay at their defaults
   }
@@ -582,6 +591,7 @@ el.saveSettingsBtn.addEventListener('click', async () => {
   const model = el.modelSelect.value;
   const seconds = parseFloat(el.intervalInput.value);
   const gpuStatsSource = el.gpuSourceSelect.value;
+  const rtspUrl = el.rtspUrlInput.value.trim() || undefined;
 
   if (!model || !seconds || seconds < 1) {
     el.settingsStatus.textContent = 'Pick a model and an interval of at least 1 second.';
@@ -590,16 +600,22 @@ el.saveSettingsBtn.addEventListener('click', async () => {
 
   el.settingsStatus.textContent = 'Saving...';
   try {
+    const body = { model, evalIntervalMs: Math.round(seconds * 1000), gpuStatsSource };
+    if (rtspUrl) body.rtspUrl = rtspUrl;
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, evalIntervalMs: Math.round(seconds * 1000), gpuStatsSource }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       throw new Error(errBody.error || `HTTP ${res.status}`);
     }
-    el.settingsStatus.textContent = 'Saved - takes effect from the next cycle.';
+    const saved = await res.json();
+    if (saved.rtspUrl && el.sourceUrlDisplay) {
+      el.sourceUrlDisplay.textContent = saved.rtspUrl;
+    }
+    el.settingsStatus.textContent = 'Saved - camera source will restart with new URL.';
   } catch (err) {
     el.settingsStatus.textContent = `Error: ${err.message}`;
   }

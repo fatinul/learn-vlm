@@ -1,10 +1,12 @@
 const config = require('../config');
 const gpuStats = require('./gpuStats');
+const rtspCapture = require('./rtspCapture');
 
 const state = {
   ollamaModel: config.ollamaModel,
   evalIntervalMs: config.evalIntervalMs,
   gpuStatsSource: config.gpuStatsSource,
+  rtspUrl: config.rtspUrl,
 };
 
 function get() {
@@ -37,4 +39,13 @@ function setGpuStatsSource(src) {
   return state.gpuStatsSource;
 }
 
-module.exports = { get, setOllamaModel, setEvalIntervalMs, setGpuStatsSource };
+function setRtspUrl(url) {
+  if (!url || typeof url !== 'string') {
+    throw new Error('rtspUrl must be a non-empty string');
+  }
+  state.rtspUrl = url;
+  rtspCapture.changeSource(url);
+  return state.rtspUrl;
+}
+
+module.exports = { get, setOllamaModel, setEvalIntervalMs, setGpuStatsSource, setRtspUrl };

@@ -129,6 +129,9 @@ router.post('/settings', (req, res) => {
     if (req.body.gpuStatsSource !== undefined) {
       runtimeConfig.setGpuStatsSource(req.body.gpuStatsSource);
     }
+    if (req.body.rtspUrl !== undefined) {
+      runtimeConfig.setRtspUrl(req.body.rtspUrl);
+    }
     res.json({ ...runtimeConfig.get() });
   } catch (err) {
     res.status(400).json({ error: err.message });

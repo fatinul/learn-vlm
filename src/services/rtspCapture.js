@@ -18,6 +18,8 @@ const JPEG_SOI = Buffer.from([0xff, 0xd8]);
 const JPEG_EOI = Buffer.from([0xff, 0xd9]);
 const MAX_BUFFER_BYTES = 5 * 1024 * 1024;
 
+let sourceUrl = config.rtspUrl;
+
 const state = {
   process: null,
   stopped: true,
@@ -32,7 +34,7 @@ function start() {
   if (state.process) return;
   state.stopped = false;
 
-  if (!config.rtspUrl) {
+  if (!sourceUrl) {
     state.lastError = 'RTSP_URL is not configured';
     return;
   }
@@ -43,7 +45,7 @@ function start() {
     '-flags', 'low_delay',
     '-probesize', '32',
     '-analyzeduration', '0',
-    '-i', config.rtspUrl,
+    '-i', sourceUrl,
     '-an',
     '-f', 'image2pipe',
     '-vcodec', 'mjpeg',
@@ -160,6 +162,17 @@ function waitForFirstFrame(timeoutMs) {
   });
 }
 
+function changeSource(newUrl) {
+  const oldStopped = state.stopped;
+  stop();
+  sourceUrl = newUrl || config.rtspUrl;
+  state.restartCount = 0;
+  state.latestFrame = null;
+  state.lastError = null;
+  state.stopped = oldStopped;
+  start();
+}
+
 function getStatus() {
   return {
     connected: !!state.process,
@@ -168,7 +181,8 @@ function getStatus() {
     frameAgeMs: state.latestFrame ? Date.now() - state.latestFrame.capturedAt.getTime() : null,
     restartCount: state.restartCount,
     lastError: state.lastError,
+    sourceUrl,
   };
 }
 
-module.exports = { start, stop, getLatestFrame, waitForFirstFrame, getStatus };
+module.exports = { start, stop, changeSource, getLatestFrame, waitForFirstFrame, getStatus };
