@@ -61,11 +61,19 @@ async function askYesNo({ imageBase64, mimeType = 'image/jpeg', condition }) {
     const rawResponse = data.choices?.[0]?.message?.content || '';
     const parsed = parseModelResponse(rawResponse);
 
+    const usage = data.usage || {};
+    const promptTokens = usage.prompt_tokens ?? null;
+    const completionTokens = usage.completion_tokens ?? null;
+    const totalTokens = usage.total_tokens ?? null;
+
     return {
       ...parsed,
       latencyMs: Date.now() - start,
       prompt,
       rawResponse,
+      promptTokens,
+      completionTokens,
+      totalTokens,
     };
   } catch (err) {
     const wrapped = err.name === 'AbortError'

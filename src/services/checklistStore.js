@@ -20,6 +20,9 @@ function add(prompt) {
     reason: '',
     lastCheckedAt: null,
     lastLatencyMs: null,
+    promptTokens: null,
+    completionTokens: null,
+    totalTokens: null,
     createdAt: new Date().toISOString(),
   };
   items.push(item);
@@ -38,6 +41,9 @@ function rename(id, prompt) {
   item.reason = '';
   item.lastCheckedAt = null;
   item.lastLatencyMs = null;
+  item.promptTokens = null;
+  item.completionTokens = null;
+  item.totalTokens = null;
   return item;
 }
 

@@ -13,6 +13,9 @@ const metrics = {
   evaluationsOk: 0,
   evaluationsFailed: 0,
   totalEvaluationMs: 0,
+  totalPromptTokens: 0,
+  totalCompletionTokens: 0,
+  totalTokens: 0,
   cycles: 0,
   totalCycleMs: 0,
   lastCycleMs: null,
@@ -35,6 +38,13 @@ function recordEvaluation(durationMs, ok) {
   metrics.totalEvaluationMs += durationMs;
   if (ok) metrics.evaluationsOk += 1;
   else metrics.evaluationsFailed += 1;
+}
+
+function recordTokens(promptTokens, completionTokens) {
+  if (promptTokens != null) metrics.totalPromptTokens += promptTokens;
+  if (completionTokens != null) metrics.totalCompletionTokens += completionTokens;
+  const total = (promptTokens ?? 0) + (completionTokens ?? 0);
+  if (total) metrics.totalTokens += total;
 }
 
 function recordCycle(durationMs) {
@@ -77,6 +87,8 @@ function snapshot({ checklistCount, evalIntervalMs, model, running, gpu, rtsp } 
     ? estimatedCycleMs > evalIntervalMs
     : false;
 
+  const avgTokensPerEval = totalEvaluations ? metrics.totalTokens / totalEvaluations : null;
+
   return {
     system: {
       platform: os.platform(),
@@ -111,6 +123,10 @@ function snapshot({ checklistCount, evalIntervalMs, model, running, gpu, rtsp } 
       lastCycleMs: round(metrics.lastCycleMs),
       estimatedCycleMs: round(estimatedCycleMs),
       isOverloaded,
+      totalPromptTokens: metrics.totalPromptTokens,
+      totalCompletionTokens: metrics.totalCompletionTokens,
+      totalTokens: metrics.totalTokens,
+      avgTokensPerEval: round(avgTokensPerEval),
     },
     gpu: gpu || { available: false, gpus: [], lastError: 'not polled', lastUpdated: null },
     rtsp: rtsp || { connected: false, hasFrame: false, lastFrameAt: null, frameAgeMs: null, restartCount: 0, lastError: null },
@@ -129,6 +145,7 @@ module.exports = {
   recordFrameUse,
   recordFrameError,
   recordEvaluation,
+  recordTokens,
   recordCycle,
   getPipelineTimings,
   snapshot,

@@ -72,8 +72,12 @@ async function runCycle() {
           reason: outcome.reason,
           lastCheckedAt: new Date().toISOString(),
           lastLatencyMs: outcome.latencyMs,
+          promptTokens: outcome.promptTokens,
+          completionTokens: outcome.completionTokens,
+          totalTokens: outcome.totalTokens,
         });
         systemStats.recordEvaluation(outcome.latencyMs, true);
+        systemStats.recordTokens(outcome.promptTokens, outcome.completionTokens);
         inferenceLog.add({
           conditionId: item.id,
           condition: item.prompt,
@@ -84,6 +88,9 @@ async function runCycle() {
           status: 'ok',
           error: null,
           latencyMs: outcome.latencyMs,
+          promptTokens: outcome.promptTokens,
+          completionTokens: outcome.completionTokens,
+          totalTokens: outcome.totalTokens,
         });
       } catch (err) {
         checklistStore.update(item.id, {
