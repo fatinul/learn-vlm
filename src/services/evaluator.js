@@ -1,5 +1,5 @@
 const rtspCapture = require('./rtspCapture');
-const ollamaClient = require('./ollamaClient');
+const groqClient = require('./groqClient');
 const checklistStore = require('./checklistStore');
 const systemStats = require('./systemStats');
 const inferenceLog = require('./inferenceLog');
@@ -10,7 +10,7 @@ const runtimeConfig = require('./runtimeConfig');
  *   1. grab the freshest frame ffmpeg currently has decoded from the RTSP
  *      stream (see rtspCapture.js - it's a persistent connection, so this
  *      is effectively instant and always up to date, not a stale snapshot)
- *   2. run every checklist condition against it through Ollama
+ *   2. run every checklist condition against it through Groq
  *   3. store the (read-only, AI-controlled) result on each checklist item
  * Runs on a timer and guards against overlapping cycles since a full pass
  * can take longer than the configured interval on slower hardware.
@@ -48,9 +48,9 @@ async function runCycle() {
     const items = checklistStore.list();
     for (const item of items) {
       const evalStart = Date.now();
-      const prompt = ollamaClient.buildPrompt(item.prompt);
+      const prompt = groqClient.buildPrompt(item.prompt);
 
-      const activeModel = runtimeConfig.get().ollamaModel;
+      const activeModel = runtimeConfig.get().model;
 
       state.currentActivity = {
         conditionId: item.id,
@@ -61,8 +61,9 @@ async function runCycle() {
       };
 
       try {
-        const outcome = await ollamaClient.askYesNo({
+        const outcome = await groqClient.askYesNo({
           imageBase64: state.latestFrame.base64,
+          mimeType: state.latestFrame.mimeType,
           condition: item.prompt,
         });
         checklistStore.update(item.id, {

@@ -18,47 +18,58 @@ function buildPrompt(condition) {
 }
 
 /**
- * Asks the configured Ollama vision model whether a single condition holds
+ * Asks the configured Groq vision model whether a single condition holds
  * true for the given image. Expects the model to return a small JSON object.
  */
-async function askYesNo({ imageBase64, condition }) {
+async function askYesNo({ imageBase64, mimeType = 'image/jpeg', condition }) {
   const prompt = buildPrompt(condition);
   const start = Date.now();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.ollamaTimeoutMs);
+  const timer = setTimeout(() => controller.abort(), config.groqTimeoutMs);
 
   try {
-    const res = await fetch(`${config.ollamaHost}/api/generate`, {
+    const res = await fetch(`${config.groqBaseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.groqApiKey}`,
+      },
       body: JSON.stringify({
-        model: runtimeConfig.get().ollamaModel,
-        prompt,
-        images: [imageBase64],
-        stream: false,
-        format: 'json',
-        options: { temperature: 0 },
+        model: runtimeConfig.get().model,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+            },
+          ],
+        }],
+        temperature: 0,
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`Ollama request failed (${res.status}): ${text.slice(0, 300)}`);
+      throw new Error(`Groq request failed (${res.status}): ${text.slice(0, 300)}`);
     }
 
     const data = await res.json();
-    const parsed = parseModelResponse(data.response);
+    const rawResponse = data.choices?.[0]?.message?.content || '';
+    const parsed = parseModelResponse(rawResponse);
 
     return {
       ...parsed,
       latencyMs: Date.now() - start,
       prompt,
-      rawResponse: data.response,
+      rawResponse,
     };
   } catch (err) {
     const wrapped = err.name === 'AbortError'
-      ? new Error(`Ollama request timed out after ${config.ollamaTimeoutMs}ms`)
+      ? new Error(`Groq request timed out after ${config.groqTimeoutMs}ms`)
       : err;
     wrapped.prompt = prompt;
     throw wrapped;

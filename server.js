@@ -8,7 +8,7 @@ const metricsHistory = require('./src/services/metricsHistory');
 app.listen(config.port, async () => {
   console.log(`Process Checklist running at http://localhost:${config.port}`);
   console.log(`RTSP source: ${config.rtspUrl || '(not configured)'}`);
-  console.log(`Ollama model: ${config.ollamaModel} @ ${config.ollamaHost}`);
+  console.log(`Groq model: ${config.groqModel}`);
   console.log(`GPU stats source: ${config.gpuStatsSource}`);
 
   rtspCapture.start();

@@ -14,9 +14,10 @@ module.exports = {
   // How long to wait at startup for the very first frame to arrive.
   firstFrameTimeoutMs: parseInt(process.env.FRAME_CAPTURE_TIMEOUT_MS || '10000', 10),
 
-  ollamaHost: process.env.OLLAMA_HOST || 'http://localhost:11434',
-  ollamaModel: process.env.OLLAMA_MODEL || 'qwen3.5:2b',
-  ollamaTimeoutMs: parseInt(process.env.OLLAMA_TIMEOUT_MS || '60000', 10),
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  groqBaseUrl: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
+  groqModel: process.env.GROQ_MODEL || 'qwen/qwen3.6-27b',
+  groqTimeoutMs: parseInt(process.env.GROQ_TIMEOUT_MS || '60000', 10),
 
   evalIntervalMs: parseInt(process.env.EVAL_INTERVAL_MS || '8000', 10),
 

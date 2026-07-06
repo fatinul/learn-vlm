@@ -20,7 +20,7 @@ router.get('/state', (req, res) => {
   const stats = systemStats.snapshot({
     checklistCount: checklist.length,
     evalIntervalMs: settings.evalIntervalMs,
-    ollamaModel: settings.ollamaModel,
+    model: settings.model,
     running: evalState.running,
     gpu: gpuStats.snapshot(),
     rtsp: rtspCapture.getStatus(),
@@ -91,37 +91,45 @@ router.post('/control/evaluate-now', (req, res) => {
   res.json({ triggered: true });
 });
 
-// Lists models available on the configured Ollama host, so the UI can offer
-// a dropdown instead of requiring an .env edit + restart.
+const GROQ_VISION_MODELS = new Set([
+  'qwen/qwen3.6-27b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+]);
+
+// Lists models available on Groq, so the UI can offer a dropdown.
 router.get('/models', async (req, res) => {
+  if (!config.groqApiKey) {
+    return res.status(502).json({ error: 'GROQ_API_KEY is not configured' });
+  }
   try {
-    const response = await fetch(`${config.ollamaHost}/api/tags`);
+    const response = await fetch(`${config.groqBaseUrl}/models`, {
+      headers: { Authorization: `Bearer ${config.groqApiKey}` },
+    });
     if (!response.ok) {
-      throw new Error(`Ollama responded with ${response.status}`);
+      throw new Error(`Groq responded with ${response.status}`);
     }
     const data = await response.json();
-    const models = (data.models || []).map((m) => ({
-      name: m.name,
-      vision: Array.isArray(m.capabilities) && m.capabilities.includes('vision'),
-      capabilities: m.capabilities || [],
-      parameterSize: m.details ? m.details.parameter_size : null,
+    const models = (data.data || []).map((m) => ({
+      name: m.id,
+      vision: GROQ_VISION_MODELS.has(m.id),
+      capabilities: GROQ_VISION_MODELS.has(m.id) ? ['vision'] : [],
+      parameterSize: null,
     }));
-    // Vision-capable models first, since this app only usefully works with those.
     models.sort((a, b) => Number(b.vision) - Number(a.vision) || a.name.localeCompare(b.name));
     res.json({ models });
   } catch (err) {
-    res.status(502).json({ error: `Could not reach Ollama at ${config.ollamaHost}: ${err.message}` });
+    res.status(502).json({ error: `Could not reach Groq API: ${err.message}` });
   }
 });
 
 router.get('/settings', (req, res) => {
-  res.json({ ...runtimeConfig.get(), ollamaHost: config.ollamaHost });
+  res.json({ ...runtimeConfig.get(), groqConfigured: Boolean(config.groqApiKey) });
 });
 
 router.post('/settings', (req, res) => {
   try {
     if (req.body.model !== undefined) {
-      runtimeConfig.setOllamaModel(req.body.model);
+      runtimeConfig.setModel(req.body.model);
     }
     if (req.body.evalIntervalMs !== undefined) {
       runtimeConfig.setEvalIntervalMs(req.body.evalIntervalMs);

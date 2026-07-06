@@ -3,7 +3,7 @@ const gpuStats = require('./gpuStats');
 const rtspCapture = require('./rtspCapture');
 
 const state = {
-  ollamaModel: config.ollamaModel,
+  model: config.groqModel,
   evalIntervalMs: config.evalIntervalMs,
   gpuStatsSource: config.gpuStatsSource,
   rtspUrl: config.rtspUrl,
@@ -13,12 +13,12 @@ function get() {
   return { ...state };
 }
 
-function setOllamaModel(model) {
+function setModel(model) {
   if (!model || typeof model !== 'string') {
     throw new Error('model must be a non-empty string');
   }
-  state.ollamaModel = model;
-  return state.ollamaModel;
+  state.model = model;
+  return state.model;
 }
 
 function setEvalIntervalMs(ms) {
@@ -48,4 +48,4 @@ function setRtspUrl(url) {
   return state.rtspUrl;
 }
 
-module.exports = { get, setOllamaModel, setEvalIntervalMs, setGpuStatsSource, setRtspUrl };
+module.exports = { get, setModel, setEvalIntervalMs, setGpuStatsSource, setRtspUrl };
