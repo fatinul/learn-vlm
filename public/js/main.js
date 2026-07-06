@@ -253,7 +253,7 @@ function renderStats(stats) {
     ['CPU', `${system.cpuCores} cores, load ${system.loadAvg1m.toFixed(2)}`],
     ['Memory', `${system.usedMemGB}GB / ${system.totalMemGB}GB (${system.memUsagePct}%)`],
     ['Node process', `${proc.rssMB}MB RSS`],
-    ['Model', pipeline.ollamaModel],
+    ['Model', pipeline.model],
     ['Checklist items', String(pipeline.checklistCount)],
     ['Eval interval', `${pipeline.evalIntervalMs}ms`],
     ['Avg frame freshness', fmtMs(pipeline.avgFrameAgeMs)],
@@ -547,13 +547,13 @@ async function loadModels() {
     }
     if (!data.models || !data.models.length) {
       const opt = document.createElement('option');
-      opt.textContent = 'No models found on Ollama';
+      opt.textContent = 'No models found on Groq';
       el.modelSelect.appendChild(opt);
     }
   } catch (err) {
     el.modelSelect.innerHTML = '';
     const opt = document.createElement('option');
-    opt.textContent = 'Could not load models from Ollama';
+    opt.textContent = 'Could not load models from Groq';
     el.modelSelect.appendChild(opt);
   }
 }
@@ -562,15 +562,15 @@ async function loadSettings() {
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
-    if (data.ollamaModel) {
-      const hasOption = Array.from(el.modelSelect.options).some((o) => o.value === data.ollamaModel);
+    if (data.model) {
+      const hasOption = Array.from(el.modelSelect.options).some((o) => o.value === data.model);
       if (!hasOption) {
         const opt = document.createElement('option');
-        opt.value = data.ollamaModel;
-        opt.textContent = data.ollamaModel;
+        opt.value = data.model;
+        opt.textContent = data.model;
         el.modelSelect.prepend(opt);
       }
-      el.modelSelect.value = data.ollamaModel;
+      el.modelSelect.value = data.model;
     }
     if (data.evalIntervalMs) {
       el.intervalInput.value = Math.round(data.evalIntervalMs / 1000);
