@@ -6,7 +6,8 @@ const router = express.Router();
 router.get('/', (req, res) => {
   res.render('index', {
     rtspUrl: config.rtspUrl,
-    model: config.groqModel,
+    provider: config.inferenceProvider,
+    model: config.inferenceProvider === 'groq' ? config.groqModel : config.ollamaModel,
     evalIntervalMs: config.evalIntervalMs,
   });
 });

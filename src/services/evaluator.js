@@ -1,5 +1,5 @@
 const rtspCapture = require('./rtspCapture');
-const groqClient = require('./groqClient');
+const inferenceClient = require('./inferenceClient');
 const checklistStore = require('./checklistStore');
 const systemStats = require('./systemStats');
 const inferenceLog = require('./inferenceLog');
@@ -10,7 +10,7 @@ const runtimeConfig = require('./runtimeConfig');
  *   1. grab the freshest frame ffmpeg currently has decoded from the RTSP
  *      stream (see rtspCapture.js - it's a persistent connection, so this
  *      is effectively instant and always up to date, not a stale snapshot)
- *   2. run every checklist condition against it through Groq
+ *   2. run every checklist condition against it through the active provider
  *   3. store the (read-only, AI-controlled) result on each checklist item
  * Runs on a timer and guards against overlapping cycles since a full pass
  * can take longer than the configured interval on slower hardware.
@@ -48,20 +48,20 @@ async function runCycle() {
     const items = checklistStore.list();
     for (const item of items) {
       const evalStart = Date.now();
-      const prompt = groqClient.buildPrompt(item.prompt);
-
-      const activeModel = runtimeConfig.get().model;
+      const settings = runtimeConfig.get();
+      const prompt = inferenceClient.buildPrompt(item.prompt);
 
       state.currentActivity = {
         conditionId: item.id,
         condition: item.prompt,
         prompt,
-        model: activeModel,
+        model: settings.model,
+        provider: settings.provider,
         startedAt: new Date().toISOString(),
       };
 
       try {
-        const outcome = await groqClient.askYesNo({
+        const outcome = await inferenceClient.askYesNo({
           imageBase64: state.latestFrame.base64,
           mimeType: state.latestFrame.mimeType,
           condition: item.prompt,
@@ -77,7 +77,8 @@ async function runCycle() {
         inferenceLog.add({
           conditionId: item.id,
           condition: item.prompt,
-          model: activeModel,
+          model: settings.model,
+          provider: settings.provider,
           prompt: outcome.prompt,
           rawResponse: outcome.rawResponse,
           parsed: { result: outcome.result, confidence: outcome.confidence, reason: outcome.reason },
@@ -96,7 +97,8 @@ async function runCycle() {
         inferenceLog.add({
           conditionId: item.id,
           condition: item.prompt,
-          model: activeModel,
+          model: settings.model,
+          provider: settings.provider,
           prompt: err.prompt || prompt,
           rawResponse: null,
           parsed: null,
