@@ -1,0 +1,32 @@
+services:
+  web_server:
+    build: .
+    container_name: process-checklist
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      FFMPEG_PATH: ffmpeg
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
